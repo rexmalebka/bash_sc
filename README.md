@@ -3,12 +3,12 @@
 Bash supercollider experiments
 
 
-# how to
+## how to
+
+source this initial bash script to set ugens and functions
 
 > source source.sh
 
-# Available Ugens
+## Available Ugens
 
-| **Ugen** | **docs**                                   |
-|----------|--------------------------------------------|
-| sinosc   | [SinOsc](https://doc.sccode.org/Classes/SinOsc.html) |
+[Sources](./sources)
