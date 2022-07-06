@@ -7,15 +7,57 @@ import uuid
 class Ugen:
     def __init__(self, name, inputs, calculation_rate=0, special_index=0, id_=None):
         self.name = name
+        PAT_PARAM = r':[^: ]+'
 
-        if type(inputs) != list or not all([type(k) == Ugen or type(k) == float for k in inputs]):
-            raise Exception('inputs contain unsupported type.', [type(k) for k in inputs])
+        for i,inp in enumerate(inputs):
+            if type(inp) == str and re.match(PAT_PARAM, inp) == None:
+                raise Exception(f'input {i} contain unsupported type.', str)
+            elif  type(inp) == str and re.match(PAT_PARAM, inp) != None:
+                continue
+
+            if not type(inp) in (Ugen, float):
+                raise Exception(f'input {i} contain unsupported type.', type(inp))
+
         self.inputs = inputs
         self.id = id_ if id_ != None else str(uuid.uuid1().int)[:10]
         self.calculation_rate = calculation_rate
         self.special_index = special_index
         self.type = 'ugen'
-    
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def collect_constants(self):
+        constants = set()
+        
+        for inp in self.inputs:
+            if type(inp) == float:
+                constants.add(inp)
+            elif type(inp) == Ugen:
+                constants.update(inp.collect_constants())
+        return list(constants)
+
+    def collect_ugens(self):
+        ugen_inputs = set([ inp for inp in self.inputs if type(inp) == Ugen])
+
+        leafs = set()
+        non_leafs = set()
+
+        for u in ugen_inputs:
+            leafs_, non_leafs_ = u.collect_ugens()
+
+            leafs.update(leafs_)
+            non_leafs.update(non_leafs_)
+
+            if all([type(k) == float for k in u.inputs]):
+                leafs.add(u)
+            else:
+                non_leads.add(u)
+        leafs = list(leafs)
+        non_leafs = list(non_leafs)
+
+        return (leafs, non_leafs)
+
     def serialize(self):
         ugen_ = {
                 'id': self.id,
@@ -36,6 +78,9 @@ class Ugen:
 
 
 def ugen_float_list(arg):
+    PAT_PARAM = r':[^: ]+'
+
+
     if type(arg) == list:
         # check if everything it's a number or a list of ugens/floats
         try:
@@ -45,32 +90,44 @@ def ugen_float_list(arg):
             for a in arg:
                 try:
                     a = float(a)
-                except ValueError:
-                    a = a.replace('\0x01',' ')
-                    a = json.loads(a.replace('\x01',' '))
-                    a = Ugen(a['name'], a['inputs'], a['calculation_rate'], a['special_index'], a['id'])
                     argn.append(a)
+                except ValueError:
+                    if not re.match(PAT_PARAM, a) == None:
+                        argn.append(a)
+                    else:
+                        a = a.replace('\0x01',' ')
+                        a = json.loads(a.replace('\x01',' '))
+                        a = Ugen(a['name'], a['inputs'], a['calculation_rate'], a['special_index'], a['id'])
+                        argn.append(a)
             arg = argn
 
     else:
         # a string argument
         try:
+            # it's a float
             arg = float(arg)
         except ValueError:
-            arg = arg.replace('\x01',' ')
-            arg = json.loads(arg)
-
-            if type(arg) == list:
-                argn = []
-                for a in arg:
-                    try:
-                        a = float(a)
-                    except (ValueError, TypeError):
-                        a = Ugen(a['name'], a['inputs'], a['calculation_rate'], a['special_index'], a['id'])
-                        argn.append(a)
-                arg = argn
+            if not re.match(PAT_PARAM, arg) == None:
+                return arg
             else:
-                arg = Ugen(arg['name'], arg['inputs'], arg['calculation_rate'], arg['special_index'], arg['id'])
+                # its a json object
+
+                arg = arg.replace('\x01',' ')
+                arg = json.loads(arg)
+
+                if type(arg) == list:
+                    argn = []
+                    for a in arg:
+                        try:
+                            a = float(a)
+                        except (ValueError, TypeError):
+                            a = Ugen(a['name'], a['inputs'], a['calculation_rate'], a['special_index'], a['id'])
+                            argn.append(a)
+                    arg = argn
+                else:
+                    arg = Ugen(arg['name'], arg['inputs'], arg['calculation_rate'], arg['special_index'], arg['id'])
+
+
 
     return arg
 

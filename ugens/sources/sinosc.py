@@ -36,11 +36,12 @@ if __name__ == '__main__':
     ugen = sinosc(args['freq'], args['phase'])
 
     if type(ugen) == list:
-        ugen = [u.serialize() for u in ugen]
-        ugen = json.dumps(ugen)
+        ugen_output = [u.serialize() for u in ugen]
+        ugen_output = json.dumps(ugen_output)
 
-        if sys.stdout.isatty():
-            print(ugen)
-        else:
-            ugen = ugen.replace(' ','\x01')
-    print(ugen)
+        if not sys.stdout.isatty():
+            ugen_output = ugen_output.replace(' ','\x01')
+        print(ugen_output)
+
+    else:
+        print(ugen)

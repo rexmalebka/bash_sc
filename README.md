@@ -11,4 +11,4 @@ source this initial bash script to set ugens and functions
 
 ## Available Ugens
 
-[Sources](./sources)
+[Sources](./ugens/sources)

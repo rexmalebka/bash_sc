@@ -11,3 +11,12 @@ do
 	python '$CWD'/'$ugen' "$@" 
 }'
 done
+
+for ugen in $(ls ugens/operators/*.py)
+do
+	# Load Ugen sources
+	command=$(echo ${ugen##*/} | awk -F '.py' '{print $1}')
+	eval '$command(){
+	python '$CWD'/'$ugen' "$@" 
+}'
+done
